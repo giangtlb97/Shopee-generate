@@ -74,6 +74,13 @@
             flex-direction: column;
             gap: 8px;
         }
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+        .button-row button {
+            flex: 1;
+        }
         button {
             width: 100%;
             padding: 12px 14px;
@@ -96,6 +103,10 @@
             background: #ee4d2d; 
             color: #fff;
         }
+        .gen:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .copy { 
             background: #28a745; 
             color: #fff; 
@@ -112,15 +123,18 @@
             background: #f7f7f7;
             border-radius: 8px;
             word-break: break-all;
-            font-size: 13px;
+            font-size: 12px;
             display: none;
             line-height: 1.6;
             border: 1px solid #e0e0e0;
+            max-height: 100px;
+            overflow-y: auto;
         }
         .result strong {
             display: block;
             color: #333;
             margin-bottom: 8px;
+            font-size: 13px;
         }
         .result a { 
             color: #ee4d2d; 
@@ -137,15 +151,10 @@
             border-radius: 6px;
             border-left: 3px solid #d32f2f;
         }
-        .loading { 
-            color: #ee4d2d; 
-            font-size: 13px; 
-            margin-top: 8px; 
+        .action-buttons {
             display: none;
-            padding: 10px;
-            background: #fff3e0;
-            border-radius: 6px;
-            border-left: 3px solid #ee4d2d;
+            gap: 8px;
+            margin-top: 12px;
         }
     </style>
 </head>
@@ -155,30 +164,30 @@
     <p class="sub">Dán link sản phẩm Shopee để tạo link ưu đãi</p>
 
     <div class="input-row">
-        <input type="text" id="url" placeholder="https://vn.shp.ee/... hoặc shopee.vn/..." autofocus />
+        <input type="text" id="url" placeholder="https://shopee.vn/... hoặc vn.shp.ee/..." autofocus />
         <button class="paste-btn" onclick="pasteLink()">📋 Dán</button>
     </div>
 
     <div class="button-group">
-        <button class="gen" onclick="generate()">Tạo Link</button>
+        <button class="gen" id="genBtn" onclick="generate()">Tạo Link</button>
     </div>
 
-    <div class="loading" id="loading">⏳ Đang xử lý...</div>
     <div class="err" id="err"></div>
 
     <div class="result" id="result">
-        <strong>✅ Link mua hàng:</strong>
+        <strong>✅ Link được tạo:</strong>
         <a id="link" href="#" target="_blank"></a>
     </div>
 
-    <div class="button-group" style="display: none;" id="actionButtons">
-        <button class="copy" id="copyBtn" onclick="copy()">📋 Copy Link</button>
-        <button class="launch" id="launchBtn" onclick="launch()">🚀 Mở Link</button>
+    <div class="action-buttons" id="actionButtons">
+        <button class="copy" id="copyBtn" onclick="copy()">📋 Copy</button>
+        <button class="launch" id="launchBtn" onclick="launch()">🚀 Mở App</button>
     </div>
 </div>
 
 <script>
     const AFFILIATE_ID = '17300270505';
+    let currentAffLink = '';
 
     function extractUrl(text) {
         var match = text.match(/https?:\/\/[^\s]+/);
@@ -188,26 +197,24 @@
     function parseShopeeUrl(raw) {
         try {
             var url = new URL(raw);
-            var host = url.hostname;
-            if (!/shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)/.test(host)) return null;
             var path = url.pathname;
+            
+            // Match shop ID and item ID from various URL formats
+            // Format: /i.{shopId}.{itemId}
             var m = path.match(/i\.(\d+)\.(\d+)/);
-            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            if (m) return { shopId: m[1], itemId: m[2] };
+            
+            // Format: /product/{shopId}/{itemId}
             m = path.match(/\/product\/(\d+)\/(\d+)/);
-            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            if (m) return { shopId: m[1], itemId: m[2] };
+            
+            // Format: /{username}/{shopId}/{itemId}
             m = path.match(/\/[^\/]+\/(\d+)\/(\d+)/);
-            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            if (m) return { shopId: m[1], itemId: m[2] };
+            
             return null;
-        } catch (e) { return null; }
-    }
-
-    function isShortShopeeUrl(url) {
-        try {
-            var parsed = new URL(url);
-            var host = parsed.hostname;
-            return /shp\.ee$/.test(host);
-        } catch (e) {
-            return false;
+        } catch (e) { 
+            return null; 
         }
     }
 
@@ -215,38 +222,21 @@
         try {
             var parsed = new URL(url);
             var host = parsed.hostname;
+            // Accept both shopee domains and shp.ee short links
             return /shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)/.test(host) 
-                   || isShortShopeeUrl(url);
+                   || /shp\.ee$/.test(host);
         } catch (e) {
             return false;
         }
     }
 
-    async function resolveShortUrl(shortUrl) {
-        try {
-            // Use a CORS proxy to resolve the redirect
-            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(shortUrl), {
-                method: 'GET'
-            });
-            const html = await response.text();
-            // Try to extract product URL from redirected page
-            var match = html.match(/https:\/\/shopee\.[^"<>\s]+/);
-            return match ? match[0] : shortUrl;
-        } catch (e) {
-            console.log('Could not resolve, using as-is');
-            return shortUrl;
-        }
-    }
-
-    async function generate() {
+    function generate() {
         var raw = extractUrl(document.getElementById('url').value.trim());
         var errEl = document.getElementById('err');
-        var loadingEl = document.getElementById('loading');
         var resultEl = document.getElementById('result');
         var actionButtons = document.getElementById('actionButtons');
 
         errEl.style.display = 'none';
-        loadingEl.style.display = 'none';
         resultEl.style.display = 'none';
         actionButtons.style.display = 'none';
 
@@ -257,7 +247,7 @@
         }
 
         if (!isShopeeUrl(raw)) {
-            errEl.textContent = '⚠️ Link không hợp lệ. Vui lòng dán link từ Shopee (shopee.vn, s.shopee.vn, vn.shp.ee...)';
+            errEl.textContent = '⚠️ Link không hợp lệ. Vui lòng dán link từ Shopee';
             errEl.style.display = 'block';
             return;
         }
@@ -265,33 +255,20 @@
         var originLink = raw;
         var parsed = parseShopeeUrl(raw);
 
-        if (isShortShopeeUrl(raw) && !parsed) {
-            loadingEl.style.display = 'block';
-            try {
-                var resolvedUrl = await resolveShortUrl(raw);
-                parsed = parseShopeeUrl(resolvedUrl);
-                if (parsed) {
-                    originLink = 'https://' + parsed.host + '/product/' + parsed.shopId + '/' + parsed.itemId;
-                } else {
-                    originLink = resolvedUrl || raw;
-                }
-            } catch (e) {
-                console.error('Error:', e);
-                originLink = raw;
-            }
-            loadingEl.style.display = 'none';
-        } else if (parsed) {
-            originLink = 'https://' + parsed.host + '/product/' + parsed.shopId + '/' + parsed.itemId;
+        // If we can parse the URL to get shopId and itemId, use normalized format
+        if (parsed) {
+            originLink = 'https://shopee.vn/product/' + parsed.shopId + '/' + parsed.itemId;
         }
 
-        var affLink = 'https://s.shopee.vn/an_redir'
+        // Create affiliate link INSTANTLY
+        currentAffLink = 'https://s.shopee.vn/an_redir'
             + '?origin_link=' + encodeURIComponent(originLink)
             + '&share_channel_code=4'
             + '&affiliate_id=' + AFFILIATE_ID;
 
         var linkEl = document.getElementById('link');
-        linkEl.href = affLink;
-        linkEl.textContent = affLink;
+        linkEl.href = currentAffLink;
+        linkEl.textContent = currentAffLink;
         resultEl.style.display = 'block';
         actionButtons.style.display = 'flex';
     }
@@ -300,7 +277,7 @@
         var input = document.getElementById('url');
         if (navigator.clipboard && navigator.clipboard.readText) {
             navigator.clipboard.readText().then(function(text) {
-                input.value = text;
+                input.value = text.trim();
                 input.focus();
             }).catch(function() {
                 input.focus();
@@ -311,34 +288,58 @@
     }
 
     function launch() {
-        var url = document.getElementById('link').href;
-        if (url && url !== '#') {
-            window.open(url, '_blank');
+        if (currentAffLink) {
+            // Try to open Shopee app with deep link
+            var deepLink = currentAffLink.replace('https://s.shopee.vn/an_redir', 'shopee://');
+            
+            // Try opening the deep link
+            window.location.href = deepLink;
+            
+            // Fallback to web if app is not installed (after a short delay)
+            setTimeout(function() {
+                window.open(currentAffLink, '_blank');
+            }, 500);
         }
     }
 
     function copy() {
-        var text = document.getElementById('link').textContent;
+        if (!currentAffLink) return;
+        
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                var btn = document.getElementById('copyBtn');
-                btn.textContent = '✅ Đã copy!';
-                setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+            navigator.clipboard.writeText(currentAffLink).then(() => {
+                showCopySuccess();
+            }).catch(() => {
+                fallbackCopy(currentAffLink);
             });
         } else {
-            var ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            ta.setSelectionRange(0, ta.value.length);
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            var btn = document.getElementById('copyBtn');
-            btn.textContent = '✅ Đã copy!';
-            setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+            fallbackCopy(currentAffLink);
         }
+    }
+
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+            document.execCommand('copy');
+            showCopySuccess();
+        } catch (e) {
+            console.error('Copy failed:', e);
+        }
+        document.body.removeChild(ta);
+    }
+
+    function showCopySuccess() {
+        var btn = document.getElementById('copyBtn');
+        var originalText = btn.textContent;
+        btn.textContent = '✅ Đã copy!';
+        setTimeout(function() { 
+            btn.textContent = '📋 Copy'; 
+        }, 2000);
     }
 
     document.getElementById('url').addEventListener('keydown', e => {
