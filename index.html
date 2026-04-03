@@ -6,16 +6,42 @@
 <title>Shopee Tool PRO</title>
 
 <style>
-body { font-family: sans-serif; background:#ee4d2d; padding:20px; }
-.box { background:#fff; padding:20px; border-radius:12px; max-width:480px; margin:auto; }
-input,button {
-    width:100%; padding:12px; margin-top:10px;
-    border-radius:8px; border:1px solid #ccc;
+body {
+    font-family: sans-serif;
+    background:#ee4d2d;
+    padding:20px;
 }
-button { background:#ee4d2d; color:#fff; border:none; font-weight:bold; }
+.box {
+    background:#fff;
+    padding:20px;
+    border-radius:12px;
+    max-width:480px;
+    margin:auto;
+}
+input, button {
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+button {
+    background:#ee4d2d;
+    color:#fff;
+    border:none;
+    font-weight:bold;
+}
+.history {
+    margin-top:15px;
+}
 .history div {
-    background:#f5f5f5; padding:8px; margin-top:5px;
-    border-radius:6px; font-size:13px; word-break:break-all;
+    background:#f5f5f5;
+    padding:8px;
+    margin-top:5px;
+    border-radius:6px;
+    font-size:13px;
+    word-break:break-all;
 }
 </style>
 </head>
@@ -34,26 +60,26 @@ button { background:#ee4d2d; color:#fff; border:none; font-weight:bold; }
 <button id="copyBtn">📋 Copy</button>
 <button id="openBtn">🚀 Mở link</button>
 
-<div id="history"></div>
+<div class="history" id="history"></div>
 </div>
 
 <script>
 const AFFILIATE_ID = '17300270505';
 
-const SHORT_DOMAINS = ['shp.ee','shpee.cc','sp.run','sho.pe','s.shopee.vn'];
+const SHORT_DOMAINS = [
+    'shp.ee','shpee.cc','sp.run','sho.pe','shopee.me','shope.ee','s.shopee.vn'
+];
 
+// ===== EXTRACT LINK =====
 function extractUrl(text){
     let m = text.match(/https?:\/\/[^\s]+/);
     return m ? m[0] : text;
 }
 
+// ===== PARSE SHOPEE =====
 function parseShopee(url){
     try{
         let u = new URL(url);
-
-        if(SHORT_DOMAINS.some(d => u.hostname.includes(d))){
-            return url;
-        }
 
         let m = u.pathname.match(/i\.(\d+)\.(\d+)/);
         if(m){
@@ -76,6 +102,7 @@ function parseShopee(url){
     }
 }
 
+// ===== GENERATE =====
 function generate(){
     try{
         let raw = document.getElementById('url').value.trim();
@@ -83,7 +110,14 @@ function generate(){
 
         raw = extractUrl(raw);
 
-        let clean = parseShopee(raw);
+        let clean = raw;
+
+        // chỉ parse nếu KHÔNG phải short link
+        if (!SHORT_DOMAINS.some(d => raw.includes(d))) {
+            clean = parseShopee(raw);
+        }
+
+        if (!clean) clean = raw;
 
         let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(clean)}&affiliate_id=${AFFILIATE_ID}`;
 
@@ -95,6 +129,7 @@ function generate(){
     }
 }
 
+// ===== COPY (iOS FIX) =====
 function copy(){
     let input = document.getElementById('result');
     if(!input.value) return;
@@ -110,6 +145,7 @@ function copy(){
     alert("✅ Đã copy");
 }
 
+// ===== OPEN =====
 function openLink(){
     let link = document.getElementById('result').value;
     if(link){
@@ -129,12 +165,20 @@ function saveHistory(link){
 function renderHistory(){
     let list = JSON.parse(localStorage.getItem("history")||"[]");
     let container = document.getElementById("history");
+
+    if(list.length === 0){
+        container.innerHTML = "";
+        return;
+    }
+
     container.innerHTML = "<b>🕘 Lịch sử:</b>";
 
     list.forEach(l=>{
         let div = document.createElement("div");
         div.textContent = l;
-        div.onclick = ()=>{ document.getElementById("result").value = l; };
+        div.onclick = ()=> {
+            document.getElementById("result").value = l;
+        };
         container.appendChild(div);
     });
 }
@@ -148,6 +192,7 @@ document.getElementById("url").addEventListener("keydown", e=>{
     if(e.key === "Enter") generate();
 });
 
+// load history
 renderHistory();
 </script>
 
