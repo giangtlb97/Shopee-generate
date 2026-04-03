@@ -6,49 +6,16 @@
 <title>Shopee Tool PRO</title>
 
 <style>
-body {
-    font-family: sans-serif;
-    background: #ee4d2d;
-    padding: 20px;
+body { font-family: sans-serif; background:#ee4d2d; padding:20px; }
+.box { background:#fff; padding:20px; border-radius:12px; max-width:480px; margin:auto; }
+input,button {
+    width:100%; padding:12px; margin-top:10px;
+    border-radius:8px; border:1px solid #ccc;
 }
-.box {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    max-width: 480px;
-    margin: auto;
-}
-h2 { margin-bottom: 10px; }
-
-input, button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-}
-
-button {
-    background: #ee4d2d;
-    color: #fff;
-    border: none;
-    font-weight: bold;
-}
-
-.result {
-    margin-top: 10px;
-}
-
-.history {
-    margin-top: 15px;
-    font-size: 13px;
-}
+button { background:#ee4d2d; color:#fff; border:none; font-weight:bold; }
 .history div {
-    background: #f5f5f5;
-    padding: 8px;
-    margin-top: 5px;
-    border-radius: 6px;
-    word-break: break-all;
+    background:#f5f5f5; padding:8px; margin-top:5px;
+    border-radius:6px; font-size:13px; word-break:break-all;
 }
 </style>
 </head>
@@ -60,14 +27,14 @@ button {
 
 <input id="url" placeholder="Dán link Shopee">
 
-<button onclick="generate()">Tạo link</button>
+<button id="genBtn">Tạo link</button>
 
 <input id="result" readonly placeholder="Link affiliate">
 
-<button onclick="copy()">📋 Copy</button>
-<button onclick="openLink()">🚀 Mở link</button>
+<button id="copyBtn">📋 Copy</button>
+<button id="openBtn">🚀 Mở link</button>
 
-<div class="history" id="history"></div>
+<div id="history"></div>
 </div>
 
 <script>
@@ -75,52 +42,66 @@ const AFFILIATE_ID = '17300270505';
 
 const SHORT_DOMAINS = ['shp.ee','shpee.cc','sp.run','sho.pe','s.shopee.vn'];
 
-function extractUrl(text) {
+function extractUrl(text){
     let m = text.match(/https?:\/\/[^\s]+/);
     return m ? m[0] : text;
 }
 
-function parseShopee(url) {
-    try {
+function parseShopee(url){
+    try{
         let u = new URL(url);
 
-        if (SHORT_DOMAINS.some(d => u.hostname.includes(d))) {
+        if(SHORT_DOMAINS.some(d => u.hostname.includes(d))){
             return url;
         }
 
-        let m = u.pathname.match(/(\\d+)\\.(\\d+)|(\\d+)\\/(\\d+)$/);
+        let m = u.pathname.match(/i\.(\d+)\.(\d+)/);
+        if(m){
+            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
+        }
 
-        if (m) {
-            let shop = m[1] || m[3];
-            let item = m[2] || m[4];
-            return `https://${u.hostname}/product/${shop}/${item}`;
+        m = u.pathname.match(/\/product\/(\d+)\/(\d+)/);
+        if(m){
+            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
+        }
+
+        m = u.pathname.match(/\/[^\/]+\/(\d+)\/(\d+)/);
+        if(m){
+            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
         }
 
         return url;
-    } catch {
+    }catch{
         return url;
     }
 }
 
-function generate() {
-    let raw = extractUrl(document.getElementById('url').value.trim());
-    if (!raw) return;
+function generate(){
+    try{
+        let raw = document.getElementById('url').value.trim();
+        if(!raw) return;
 
-    let clean = parseShopee(raw);
+        raw = extractUrl(raw);
 
-    let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(clean)}&affiliate_id=${AFFILIATE_ID}`;
+        let clean = parseShopee(raw);
 
-    document.getElementById('result').value = aff;
+        let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(clean)}&affiliate_id=${AFFILIATE_ID}`;
 
-    saveHistory(aff);
+        document.getElementById('result').value = aff;
+
+        saveHistory(aff);
+    }catch(e){
+        alert("Lỗi: " + e.message);
+    }
 }
 
-function copy() {
+function copy(){
     let input = document.getElementById('result');
+    if(!input.value) return;
 
     input.removeAttribute("readonly");
     input.select();
-    input.setSelectionRange(0, 99999);
+    input.setSelectionRange(0,99999);
 
     document.execCommand("copy");
 
@@ -129,38 +110,42 @@ function copy() {
     alert("✅ Đã copy");
 }
 
-function openLink() {
+function openLink(){
     let link = document.getElementById('result').value;
-    if (link) window.open(link, "_blank");
+    if(link){
+        window.open(link,'_blank');
+    }
 }
 
 // ===== HISTORY =====
-function saveHistory(link) {
-    let list = JSON.parse(localStorage.getItem("history") || "[]");
+function saveHistory(link){
+    let list = JSON.parse(localStorage.getItem("history")||"[]");
     list.unshift(link);
-    list = list.slice(0, 10);
+    list = list.slice(0,10);
     localStorage.setItem("history", JSON.stringify(list));
     renderHistory();
 }
 
-function renderHistory() {
-    let list = JSON.parse(localStorage.getItem("history") || "[]");
-    let html = "<b>🕘 Lịch sử:</b>";
+function renderHistory(){
+    let list = JSON.parse(localStorage.getItem("history")||"[]");
+    let container = document.getElementById("history");
+    container.innerHTML = "<b>🕘 Lịch sử:</b>";
 
-    list.forEach(l => {
-        html += `<div onclick="useHistory('${l}')">${l}</div>`;
+    list.forEach(l=>{
+        let div = document.createElement("div");
+        div.textContent = l;
+        div.onclick = ()=>{ document.getElementById("result").value = l; };
+        container.appendChild(div);
     });
-
-    document.getElementById("history").innerHTML = html;
 }
 
-function useHistory(link) {
-    document.getElementById("result").value = link;
-}
+// ===== EVENTS (FIX iOS) =====
+document.getElementById("genBtn").addEventListener("click", generate);
+document.getElementById("copyBtn").addEventListener("click", copy);
+document.getElementById("openBtn").addEventListener("click", openLink);
 
-// Enter key
-document.getElementById('url').addEventListener('keydown', e => {
-    if (e.key === 'Enter') generate();
+document.getElementById("url").addEventListener("keydown", e=>{
+    if(e.key === "Enter") generate();
 });
 
 renderHistory();
