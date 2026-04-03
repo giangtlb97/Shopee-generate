@@ -23,104 +23,163 @@
             width: 100%;
             box-shadow: 0 16px 48px rgba(0,0,0,0.15);
         }
-        h1 { color: #ee4d2d; font-size: 22px; margin-bottom: 6px; }
-        .sub { color: #888; font-size: 13px; margin-bottom: 20px; }
+        h1 { 
+            color: #ee4d2d; 
+            font-size: 24px; 
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .sub { 
+            color: #888; 
+            font-size: 14px; 
+            margin-bottom: 24px;
+            line-height: 1.4;
+        }
         .input-row {
             display: flex;
             gap: 8px;
+            margin-bottom: 12px;
         }
         .input-row input {
             flex: 1;
-            padding: 14px;
+            padding: 12px 14px;
             border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 14px;
             outline: none;
             transition: border 0.2s;
+            font-family: inherit;
         }
-        .input-row input:focus { border-color: #ee4d2d; }
+        .input-row input:focus { 
+            border-color: #ee4d2d;
+        }
         .paste-btn {
-            width: auto;
-            padding: 14px 16px;
+            padding: 12px 14px;
             background: #555;
             color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             -webkit-appearance: none;
             white-space: nowrap;
+            transition: opacity 0.2s;
         }
-        .paste-btn:active { opacity: 0.7; }
-        input {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 15px;
-            outline: none;
-            transition: border 0.2s;
+        .paste-btn:active { 
+            opacity: 0.7;
         }
-        input:focus { border-color: #ee4d2d; }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
         button {
             width: 100%;
-            padding: 14px;
+            padding: 12px 14px;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 12px;
             transition: opacity 0.2s;
             -webkit-appearance: none;
+            font-family: inherit;
         }
-        button:hover { opacity: 0.9; }
-        button:active { opacity: 0.7; }
-        .gen { background: #ee4d2d; color: #fff; }
-        .copy { background: #28a745; color: #fff; display: none; }
-        .launch { background: #1a73e8; color: #fff; display: none; }
+        button:hover { 
+            opacity: 0.9;
+        }
+        button:active { 
+            opacity: 0.7;
+        }
+        .gen { 
+            background: #ee4d2d; 
+            color: #fff;
+        }
+        .copy { 
+            background: #28a745; 
+            color: #fff; 
+            display: none;
+        }
+        .launch { 
+            background: #1a73e8; 
+            color: #fff; 
+            display: none;
+        }
         .result {
             margin-top: 16px;
             padding: 14px;
             background: #f7f7f7;
-            border-radius: 10px;
+            border-radius: 8px;
             word-break: break-all;
             font-size: 13px;
             display: none;
             line-height: 1.6;
+            border: 1px solid #e0e0e0;
         }
-        .result a { color: #ee4d2d; text-decoration: none; }
-        .err { color: #e53935; font-size: 13px; margin-top: 8px; display: none; }
+        .result strong {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .result a { 
+            color: #ee4d2d; 
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .err { 
+            color: #d32f2f; 
+            font-size: 13px; 
+            margin-top: 8px; 
+            display: none;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 6px;
+            border-left: 3px solid #d32f2f;
+        }
+        .loading { 
+            color: #ee4d2d; 
+            font-size: 13px; 
+            margin-top: 8px; 
+            display: none;
+            padding: 10px;
+            background: #fff3e0;
+            border-radius: 6px;
+            border-left: 3px solid #ee4d2d;
+        }
     </style>
 </head>
 <body>
 <div class="box">
     <h1>🛒 Tạo Link Mua Hàng</h1>
-    <p class="sub">Dán link sản phẩm Shopee vào đây để lấy link ưu đãi</p>
+    <p class="sub">Dán link sản phẩm Shopee để tạo link ưu đãi</p>
 
     <div class="input-row">
-        <input type="text" id="url" placeholder="Dán link Shopee vào đây..." autofocus />
+        <input type="text" id="url" placeholder="https://vn.shp.ee/... hoặc shopee.vn/..." autofocus />
         <button class="paste-btn" onclick="pasteLink()">📋 Dán</button>
     </div>
 
-    <button class="gen" onclick="generate()">Tạo Link</button>
+    <div class="button-group">
+        <button class="gen" onclick="generate()">Tạo Link</button>
+    </div>
+
+    <div class="loading" id="loading">⏳ Đang xử lý...</div>
     <div class="err" id="err"></div>
 
     <div class="result" id="result">
-        <strong>Link mua hàng:</strong><br>
+        <strong>✅ Link mua hàng:</strong>
         <a id="link" href="#" target="_blank"></a>
     </div>
-    <button class="copy" id="copyBtn" onclick="copy()">📋 Copy Link</button>
-    <button class="launch" id="launchBtn" onclick="launch()">🚀 Mở Link</button>
+
+    <div class="button-group" style="display: none;" id="actionButtons">
+        <button class="copy" id="copyBtn" onclick="copy()">📋 Copy Link</button>
+        <button class="launch" id="launchBtn" onclick="launch()">🚀 Mở Link</button>
+    </div>
 </div>
 
 <script>
-    // ===== YOUR AFFILIATE ID HERE =====
     const AFFILIATE_ID = '17300270505';
-    // ==================================
 
-    // Extract a URL from pasted text (Shopee app often shares extra text around the link)
     function extractUrl(text) {
         var match = text.match(/https?:\/\/[^\s]+/);
         return match ? match[0] : text;
@@ -132,13 +191,10 @@
             var host = url.hostname;
             if (!/shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)/.test(host)) return null;
             var path = url.pathname;
-            // i.{shopId}.{itemId}
             var m = path.match(/i\.(\d+)\.(\d+)/);
             if (m) return { shopId: m[1], itemId: m[2], host: host };
-            // /product/{shopId}/{itemId}
             m = path.match(/\/product\/(\d+)\/(\d+)/);
             if (m) return { shopId: m[1], itemId: m[2], host: host };
-            // /{username}/{shopId}/{itemId}  (redirect format)
             m = path.match(/\/[^\/]+\/(\d+)\/(\d+)/);
             if (m) return { shopId: m[1], itemId: m[2], host: host };
             return null;
@@ -149,23 +205,9 @@
         try {
             var parsed = new URL(url);
             var host = parsed.hostname;
-            return /^([a-z]{2}\.)?shp\.ee$/.test(host);
+            return /shp\.ee$/.test(host);
         } catch (e) {
             return false;
-        }
-    }
-
-    function pasteLink() {
-        var input = document.getElementById('url');
-        if (navigator.clipboard && navigator.clipboard.readText) {
-            navigator.clipboard.readText().then(function(text) {
-                input.value = text;
-                generate();
-            }).catch(function() {
-                input.focus();
-            });
-        } else {
-            input.focus();
         }
     }
 
@@ -173,42 +215,72 @@
         try {
             var parsed = new URL(url);
             var host = parsed.hostname;
-            return /^(s\.|[\w-]+\.)?shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)$/.test(host) 
+            return /shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)/.test(host) 
                    || isShortShopeeUrl(url);
         } catch (e) {
             return false;
         }
     }
 
-    function generate() {
+    async function resolveShortUrl(shortUrl) {
+        try {
+            // Use a CORS proxy to resolve the redirect
+            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(shortUrl), {
+                method: 'GET'
+            });
+            const html = await response.text();
+            // Try to extract product URL from redirected page
+            var match = html.match(/https:\/\/shopee\.[^"<>\s]+/);
+            return match ? match[0] : shortUrl;
+        } catch (e) {
+            console.log('Could not resolve, using as-is');
+            return shortUrl;
+        }
+    }
+
+    async function generate() {
         var raw = extractUrl(document.getElementById('url').value.trim());
         var errEl = document.getElementById('err');
+        var loadingEl = document.getElementById('loading');
         var resultEl = document.getElementById('result');
-        var copyBtn = document.getElementById('copyBtn');
-        var launchBtn = document.getElementById('launchBtn');
+        var actionButtons = document.getElementById('actionButtons');
 
         errEl.style.display = 'none';
+        loadingEl.style.display = 'none';
         resultEl.style.display = 'none';
-        copyBtn.style.display = 'none';
-        launchBtn.style.display = 'none';
+        actionButtons.style.display = 'none';
 
         if (!raw) {
-            errEl.textContent = '⚠️ Vui lòng dán link sản phẩm Shopee.';
+            errEl.textContent = '⚠️ Vui lòng dán link sản phẩm Shopee';
             errEl.style.display = 'block';
             return;
         }
 
         if (!isShopeeUrl(raw)) {
-            errEl.textContent = '⚠️ Link không hợp lệ. Chỉ hỗ trợ link từ Shopee (shopee.vn, s.shopee.vn, vn.shp.ee...)';
+            errEl.textContent = '⚠️ Link không hợp lệ. Vui lòng dán link từ Shopee (shopee.vn, s.shopee.vn, vn.shp.ee...)';
             errEl.style.display = 'block';
             return;
         }
 
-        // If it's a short link (vn.shp.ee, s.shopee.vn, etc), use it directly as origin_link
         var originLink = raw;
         var parsed = parseShopeeUrl(raw);
-        if (parsed) {
-            // Normalize to clean format
+
+        if (isShortShopeeUrl(raw) && !parsed) {
+            loadingEl.style.display = 'block';
+            try {
+                var resolvedUrl = await resolveShortUrl(raw);
+                parsed = parseShopeeUrl(resolvedUrl);
+                if (parsed) {
+                    originLink = 'https://' + parsed.host + '/product/' + parsed.shopId + '/' + parsed.itemId;
+                } else {
+                    originLink = resolvedUrl || raw;
+                }
+            } catch (e) {
+                console.error('Error:', e);
+                originLink = raw;
+            }
+            loadingEl.style.display = 'none';
+        } else if (parsed) {
             originLink = 'https://' + parsed.host + '/product/' + parsed.shopId + '/' + parsed.itemId;
         }
 
@@ -221,8 +293,21 @@
         linkEl.href = affLink;
         linkEl.textContent = affLink;
         resultEl.style.display = 'block';
-        copyBtn.style.display = 'block';
-        launchBtn.style.display = 'block';
+        actionButtons.style.display = 'flex';
+    }
+
+    function pasteLink() {
+        var input = document.getElementById('url');
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(function(text) {
+                input.value = text;
+                input.focus();
+            }).catch(function() {
+                input.focus();
+            });
+        } else {
+            input.focus();
+        }
     }
 
     function launch() {
@@ -234,23 +319,28 @@
 
     function copy() {
         var text = document.getElementById('link').textContent;
-        // iOS Safari fallback: use a temporary textarea + execCommand
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        ta.setSelectionRange(0, ta.value.length);
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        var btn = document.getElementById('copyBtn');
-        btn.textContent = '✅ Đã copy!';
-        setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                var btn = document.getElementById('copyBtn');
+                btn.textContent = '✅ Đã copy!';
+                setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+            });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            ta.setSelectionRange(0, ta.value.length);
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            var btn = document.getElementById('copyBtn');
+            btn.textContent = '✅ Đã copy!';
+            setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+        }
     }
 
-    // Allow Enter key to generate
     document.getElementById('url').addEventListener('keydown', e => {
         if (e.key === 'Enter') generate();
     });
