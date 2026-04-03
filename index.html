@@ -3,45 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shopee Tool PRO</title>
+<title>Shopee Tool PRO+</title>
 
 <style>
-body {
-    font-family: sans-serif;
-    background:#ee4d2d;
-    padding:20px;
+body { font-family:sans-serif; background:#ee4d2d; padding:20px; }
+.box { background:#fff; padding:20px; border-radius:12px; max-width:480px; margin:auto; }
+input,button {
+    width:100%; padding:12px; margin-top:10px;
+    border-radius:8px; border:1px solid #ccc;
 }
-.box {
-    background:#fff;
-    padding:20px;
-    border-radius:12px;
-    max-width:480px;
-    margin:auto;
-}
-input, button {
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border-radius:8px;
-    border:1px solid #ccc;
-    font-size:14px;
-}
-button {
-    background:#ee4d2d;
-    color:#fff;
-    border:none;
-    font-weight:bold;
-}
-.history {
-    margin-top:15px;
-}
+button { background:#ee4d2d; color:#fff; border:none; font-weight:bold; }
 .history div {
-    background:#f5f5f5;
-    padding:8px;
-    margin-top:5px;
-    border-radius:6px;
-    font-size:13px;
-    word-break:break-all;
+    background:#f5f5f5; padding:8px; margin-top:5px;
+    border-radius:6px; font-size:13px; word-break:break-all;
 }
 </style>
 </head>
@@ -49,7 +23,7 @@ button {
 <body>
 
 <div class="box">
-<h2>🛒 Shopee Tool PRO</h2>
+<h2>🛒 Shopee Tool PRO+</h2>
 
 <input id="url" placeholder="Dán link Shopee">
 
@@ -60,41 +34,35 @@ button {
 <button id="copyBtn">📋 Copy</button>
 <button id="openBtn">🚀 Mở link</button>
 
-<div class="history" id="history"></div>
+<div id="history"></div>
 </div>
 
 <script>
 const AFFILIATE_ID = '17300270505';
 
 const SHORT_DOMAINS = [
-    'shp.ee','shpee.cc','sp.run','sho.pe','shopee.me','shope.ee','s.shopee.vn'
+    'shp.ee','shpee.cc','sp.run','sho.pe','s.shopee.vn'
 ];
 
-// ===== EXTRACT LINK =====
+// ===== EXTRACT =====
 function extractUrl(text){
     let m = text.match(/https?:\/\/[^\s]+/);
     return m ? m[0] : text;
 }
 
-// ===== PARSE SHOPEE =====
+// ===== PARSE =====
 function parseShopee(url){
     try{
         let u = new URL(url);
 
         let m = u.pathname.match(/i\.(\d+)\.(\d+)/);
-        if(m){
-            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
-        }
+        if(m) return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
 
         m = u.pathname.match(/\/product\/(\d+)\/(\d+)/);
-        if(m){
-            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
-        }
+        if(m) return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
 
         m = u.pathname.match(/\/[^\/]+\/(\d+)\/(\d+)/);
-        if(m){
-            return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
-        }
+        if(m) return `https://${u.hostname}/product/${m[1]}/${m[2]}`;
 
         return url;
     }catch{
@@ -102,34 +70,51 @@ function parseShopee(url){
     }
 }
 
+// ===== RESOLVE SHORT LINK =====
+async function resolveLink(url){
+    try{
+        let res = await fetch(url, {
+            method: "GET",
+            redirect: "follow"
+        });
+
+        return res.url; // URL cuối sau redirect
+    }catch(e){
+        return url;
+    }
+}
+
 // ===== GENERATE =====
-function generate(){
+async function generate(){
     try{
         let raw = document.getElementById('url').value.trim();
         if(!raw) return;
 
         raw = extractUrl(raw);
 
-        let clean = raw;
+        let finalUrl = raw;
 
-        // chỉ parse nếu KHÔNG phải short link
-        if (!SHORT_DOMAINS.some(d => raw.includes(d))) {
-            clean = parseShopee(raw);
+        // nếu là short link → resolve
+        if (SHORT_DOMAINS.some(d => raw.includes(d))) {
+            document.getElementById('result').value = "Đang xử lý link...";
+            finalUrl = await resolveLink(raw);
         }
 
-        if (!clean) clean = raw;
+        // parse về product
+        finalUrl = parseShopee(finalUrl);
 
-        let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(clean)}&affiliate_id=${AFFILIATE_ID}`;
+        let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(finalUrl)}&affiliate_id=${AFFILIATE_ID}`;
 
         document.getElementById('result').value = aff;
 
         saveHistory(aff);
+
     }catch(e){
         alert("Lỗi: " + e.message);
     }
 }
 
-// ===== COPY (iOS FIX) =====
+// ===== COPY =====
 function copy(){
     let input = document.getElementById('result');
     if(!input.value) return;
@@ -183,7 +168,7 @@ function renderHistory(){
     });
 }
 
-// ===== EVENTS (FIX iOS) =====
+// ===== EVENTS =====
 document.getElementById("genBtn").addEventListener("click", generate);
 document.getElementById("copyBtn").addEventListener("click", copy);
 document.getElementById("openBtn").addEventListener("click", openLink);
@@ -192,7 +177,6 @@ document.getElementById("url").addEventListener("keydown", e=>{
     if(e.key === "Enter") generate();
 });
 
-// load history
 renderHistory();
 </script>
 
