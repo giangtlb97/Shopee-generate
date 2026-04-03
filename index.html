@@ -1,170 +1,248 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shopee Tool PRO</title>
-
-<style>
-body {
-    font-family: sans-serif;
-    background: #ee4d2d;
-    padding: 20px;
-}
-.box {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    max-width: 480px;
-    margin: auto;
-}
-h2 { margin-bottom: 10px; }
-
-input, button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-}
-
-button {
-    background: #ee4d2d;
-    color: #fff;
-    border: none;
-    font-weight: bold;
-}
-
-.result {
-    margin-top: 10px;
-}
-
-.history {
-    margin-top: 15px;
-    font-size: 13px;
-}
-.history div {
-    background: #f5f5f5;
-    padding: 8px;
-    margin-top: 5px;
-    border-radius: 6px;
-    word-break: break-all;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Link Shopee</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #ee4d2d, #ff7849);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+        }
+        h1 { color: #ee4d2d; font-size: 22px; margin-bottom: 6px; }
+        .sub { color: #888; font-size: 13px; margin-bottom: 20px; }
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .input-row input:focus { border-color: #ee4d2d; }
+        .paste-btn {
+            width: auto;
+            padding: 14px 16px;
+            background: #555;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-appearance: none;
+            white-space: nowrap;
+        }
+        .paste-btn:active { opacity: 0.7; }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        input:focus { border-color: #ee4d2d; }
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: opacity 0.2s;
+            -webkit-appearance: none;
+        }
+        button:hover { opacity: 0.9; }
+        button:active { opacity: 0.7; }
+        .gen { background: #ee4d2d; color: #fff; }
+        .copy { background: #28a745; color: #fff; display: none; }
+        .launch { background: #1a73e8; color: #fff; display: none; }
+        .result {
+            margin-top: 16px;
+            padding: 14px;
+            background: #f7f7f7;
+            border-radius: 10px;
+            word-break: break-all;
+            font-size: 13px;
+            display: none;
+            line-height: 1.6;
+        }
+        .result a { color: #ee4d2d; text-decoration: none; }
+        .err { color: #e53935; font-size: 13px; margin-top: 8px; display: none; }
+    </style>
 </head>
-
 <body>
-
 <div class="box">
-<h2>🛒 Shopee Tool PRO</h2>
+    <h1>🛒 Tạo Link Mua Hàng</h1>
+    <p class="sub">Dán link sản phẩm Shopee vào đây để lấy link ưu đãi</p>
 
-<input id="url" placeholder="Dán link Shopee">
+    <div class="input-row">
+        <input type="text" id="url" placeholder="Dán link Shopee vào đây..." autofocus />
+        <button class="paste-btn" onclick="pasteLink()">📋 Dán</button>
+    </div>
 
-<button onclick="generate()">Tạo link</button>
+    <button class="gen" onclick="generate()">Tạo Link</button>
+    <div class="err" id="err"></div>
 
-<input id="result" readonly placeholder="Link affiliate">
-
-<button onclick="copy()">📋 Copy</button>
-<button onclick="openLink()">🚀 Mở link</button>
-
-<div class="history" id="history"></div>
+    <div class="result" id="result">
+        <strong>Link mua hàng:</strong><br>
+        <a id="link" href="#" target="_blank"></a>
+    </div>
+    <button class="copy" id="copyBtn" onclick="copy()">📋 Copy Link</button>
+    <button class="launch" id="launchBtn" onclick="launch()">🚀 Mở Link</button>
 </div>
 
 <script>
-const AFFILIATE_ID = '17300270505';
+    // ===== YOUR AFFILIATE ID HERE =====
+    const AFFILIATE_ID = '17300270505';
+    // ==================================
 
-const SHORT_DOMAINS = ['shp.ee','shpee.cc','sp.run','sho.pe','s.shopee.vn'];
+    // Extract a URL from pasted text (Shopee app often shares extra text around the link)
+    function extractUrl(text) {
+        var match = text.match(/https?:\/\/[^\s]+/);
+        return match ? match[0] : text;
+    }
 
-function extractUrl(text) {
-    let m = text.match(/https?:\/\/[^\s]+/);
-    return m ? m[0] : text;
-}
+    function parseShopeeUrl(raw) {
+        try {
+            var url = new URL(raw);
+            var host = url.hostname;
+            if (!/shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)/.test(host)) return null;
+            var path = url.pathname;
+            // i.{shopId}.{itemId}
+            var m = path.match(/i\.(\d+)\.(\d+)/);
+            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            // /product/{shopId}/{itemId}
+            m = path.match(/\/product\/(\d+)\/(\d+)/);
+            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            // /{username}/{shopId}/{itemId}  (redirect format)
+            m = path.match(/\/[^\/]+\/(\d+)\/(\d+)/);
+            if (m) return { shopId: m[1], itemId: m[2], host: host };
+            return null;
+        } catch (e) { return null; }
+    }
 
-function parseShopee(url) {
-    try {
-        let u = new URL(url);
+    function pasteLink() {
+        var input = document.getElementById('url');
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(function(text) {
+                input.value = text;
+                generate();
+            }).catch(function() {
+                input.focus();
+            });
+        } else {
+            input.focus();
+        }
+    }
 
-        if (SHORT_DOMAINS.some(d => u.hostname.includes(d))) {
-            return url;
-        }
+    function isShopeeUrl(url) {
+        try {
+            var parsed = new URL(url);
+            var host = parsed.hostname;
+            return /^(s\.|[\w-]+\.)?shopee\.(vn|co\.th|sg|com\.my|co\.id|ph|tw|com|cl|com\.co|com\.mx|kr|in|pl|com\.br)$/.test(host);
+        } catch (e) {
+            return false;
+        }
+    }
 
-        let m = u.pathname.match(/(\\d+)\\.(\\d+)|(\\d+)\\/(\\d+)$/);
+    function generate() {
+        var raw = extractUrl(document.getElementById('url').value.trim());
+        var errEl = document.getElementById('err');
+        var resultEl = document.getElementById('result');
+        var copyBtn = document.getElementById('copyBtn');
+        var launchBtn = document.getElementById('launchBtn');
 
-        if (m) {
-            let shop = m[1] || m[3];
-            let item = m[2] || m[4];
-            return `https://${u.hostname}/product/${shop}/${item}`;
-        }
+        errEl.style.display = 'none';
+        resultEl.style.display = 'none';
+        copyBtn.style.display = 'none';
+        launchBtn.style.display = 'none';
 
-        return url;
-    } catch {
-        return url;
-    }
-}
+        if (!raw) {
+            errEl.textContent = '⚠️ Vui lòng dán link sản phẩm Shopee.';
+            errEl.style.display = 'block';
+            return;
+        }
 
-function generate() {
-    let raw = extractUrl(document.getElementById('url').value.trim());
-    if (!raw) return;
+        if (!isShopeeUrl(raw)) {
+            errEl.textContent = '⚠️ Link không hợp lệ. Chỉ hỗ trợ link từ Shopee (shopee.vn, s.shopee.vn...)';
+            errEl.style.display = 'block';
+            return;
+        }
 
-    let clean = parseShopee(raw);
+        // If it's a short link (s.shopee.vn), use it directly as origin_link
+        var originLink = raw;
+        var parsed = parseShopeeUrl(raw);
+        if (parsed) {
+            // Normalize to clean format
+            originLink = 'https://' + parsed.host + '/product/' + parsed.shopId + '/' + parsed.itemId;
+        }
 
-    let aff = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(clean)}&affiliate_id=${AFFILIATE_ID}`;
+        var affLink = 'https://s.shopee.vn/an_redir'
+            + '?origin_link=' + encodeURIComponent(originLink)
+            + '&share_channel_code=4'
+            + '&affiliate_id=' + AFFILIATE_ID;
 
-    document.getElementById('result').value = aff;
+        var linkEl = document.getElementById('link');
+        linkEl.href = affLink;
+        linkEl.textContent = affLink;
+        resultEl.style.display = 'block';
+        copyBtn.style.display = 'block';
+        launchBtn.style.display = 'block';
+    }
 
-    saveHistory(aff);
-}
+    function launch() {
+        var url = document.getElementById('link').href;
+        if (url && url !== '#') {
+            window.open(url, '_blank');
+        }
+    }
 
-function copy() {
-    let input = document.getElementById('result');
+    function copy() {
+        var text = document.getElementById('link').textContent;
+        // iOS Safari fallback: use a temporary textarea + execCommand
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        var btn = document.getElementById('copyBtn');
+        btn.textContent = '✅ Đã copy!';
+        setTimeout(function() { btn.textContent = '📋 Copy Link'; }, 2000);
+    }
 
-    input.removeAttribute("readonly");
-    input.select();
-    input.setSelectionRange(0, 99999);
-
-    document.execCommand("copy");
-
-    input.setAttribute("readonly", true);
-
-    alert("✅ Đã copy");
-}
-
-function openLink() {
-    let link = document.getElementById('result').value;
-    if (link) window.open(link, "_blank");
-}
-
-// ===== HISTORY =====
-function saveHistory(link) {
-    let list = JSON.parse(localStorage.getItem("history") || "[]");
-    list.unshift(link);
-    list = list.slice(0, 10);
-    localStorage.setItem("history", JSON.stringify(list));
-    renderHistory();
-}
-
-function renderHistory() {
-    let list = JSON.parse(localStorage.getItem("history") || "[]");
-    let html = "<b>🕘 Lịch sử:</b>";
-
-    list.forEach(l => {
-        html += `<div onclick="useHistory('${l}')">${l}</div>`;
-    });
-
-    document.getElementById("history").innerHTML = html;
-}
-
-function useHistory(link) {
-    document.getElementById("result").value = link;
-}
-
-// Enter key
-document.getElementById('url').addEventListener('keydown', e => {
-    if (e.key === 'Enter') generate();
-});
-
-renderHistory();
+    // Allow Enter key to generate
+    document.getElementById('url').addEventListener('keydown', e => {
+        if (e.key === 'Enter') generate();
+    });
 </script>
-
 </body>
 </html>
